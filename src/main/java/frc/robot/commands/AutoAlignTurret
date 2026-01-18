@@ -1,0 +1,38 @@
+package frc.robot.commands;
+
+// No Turret class code currently 🥺
+
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Subsystems.Turret.TurretVision;
+import frc.robot.Subsystems.Turret.*;
+import edu.wpi.first.math.controller.PIDController;
+
+public class AutoAlignTurret extends Command {
+
+    private Turret turret;
+    private TurretVision vision;
+    private PIDController pid;
+
+    private int kP;
+    private int kI;
+    private int kD;
+
+    public AutoAlignTurret(Turret turret, TurretVision vision) {
+        this.turret = turret;
+        this.vision = vision;
+        this.pid = new PIDController(kP, kI, kD);
+    }
+
+    @Override
+    public void execute() {
+        if (vision.hasTarget()) {
+
+            double correction = pid.calculate(vision.getTargetX(), 0.0);
+            // Apply to turret motor 
+        } 
+        else 
+        {
+            // Stop
+        }
+    }
+}
