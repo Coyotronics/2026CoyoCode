@@ -38,7 +38,7 @@ public class TurretVision extends SubsystemBase {
             targetX = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0.0); 
             // vertical angle to target
             targetY = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0.0); 
-        } 
+        }
         else 
         {
             targetX = 0;

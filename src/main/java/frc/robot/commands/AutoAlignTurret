@@ -1,7 +1,5 @@
 package frc.robot.commands;
 
-// No Turret class code currently 🥺
-
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Subsystems.Turret.TurretVision;
 import frc.robot.Subsystems.Turret.*;
@@ -21,18 +19,42 @@ public class AutoAlignTurret extends Command {
         this.turret = turret;
         this.vision = vision;
         this.pid = new PIDController(kP, kI, kD);
+        addRequirements(turret);
     }
 
     @Override
     public void execute() {
         if (vision.hasTarget()) {
-
             double correction = pid.calculate(vision.getTargetX(), 0.0);
-            // Apply to turret motor 
+
+            double currentAngle = turret.getCurrentAngle();
+            double desiredAngle = currentAngle + vision.getTargetX();
+
+            //double safeTarget = getSafeTarget(currentAngle, desiredAngle);
+
+            //turret.setAbsoluteSetpoint(safeTarget);
+            turret.setAbsoluteSetpoint(desiredAngle);
+            turret.setClosedLoopPosition();
+            
         } 
         else 
         {
-            // Stop
+            turret.setAbsoluteSetpoint(turret.getCurrentAngle());
+            turret.setClosedLoopPosition();
         }
+    }
+
+
+    public double getSafeTarget(double currentAngle, double desiredAngle) 
+    {
+        double delta = desiredAngle - currentAngle;
+        double safeTarget;
+        
+        if(desiredAngle > 180)
+            safeTarget = (desiredAngle % 180) - 180;
+        if(desiredAngle < -180)
+            safeTarget = -((-desiredAngle % 180) - 180);
+
+        return safeTarget;
     }
 }

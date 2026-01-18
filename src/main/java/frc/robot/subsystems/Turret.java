@@ -85,6 +85,11 @@ public class Turret extends SubsystemBase {
     private boolean initialHome;
     private boolean turretHomeSensorLatch = false;
 
+    // AutoAlign Variables
+    private double lastAngle = 0.0; // The angle from the previous looop
+    private double turretAbsoluteAngle = 0.0; // Absolute angle turn of the turret to determine turn direction
+    private static final double MAX_TWIST_DEG = 360.0;
+
     public Turret(SwerveSubsystem swerveDrive) {
         this.m_swerveDrive = swerveDrive;
 
@@ -259,6 +264,7 @@ public class Turret extends SubsystemBase {
 
     @Override
     public void periodic() {
+
         if (getControlMode() == 1)
             setClosedLoopPosition();
 
@@ -291,6 +297,11 @@ public class Turret extends SubsystemBase {
     @Override
     public void simulationPeriodic() {
     }
+
+    public double getTurretAbsoluteAngle(){
+        return turretAbsoluteAngle;
+    }
+
 
     //Simulation stuff. will have to get running eventually
     

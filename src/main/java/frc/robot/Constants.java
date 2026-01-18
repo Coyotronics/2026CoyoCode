@@ -15,6 +15,7 @@ package frc.robot;
 public final class Constants {
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
+    public static final double TURN_CONSTANT = 0;
   }
 
   public static final int turretMotor = 0;
@@ -22,4 +23,7 @@ public static final double TurretCruiseVelocity = 0;
 public static final double TurretkP = 0;
 public static final double TurretkI = 0;
 public static final double TurretkD = 0;
+public static final double LOOP_TIME = 0;
+public static final double ROBOT_MASS = 0;
+public static final Object CHASSIS = null;
 }
