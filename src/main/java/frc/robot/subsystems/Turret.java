@@ -5,6 +5,8 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
+//credit to https://github.com/4201VitruvianBots/TRex2021/blob/main/src/main/java/frc/robot/subsystems/Turret.java
+
 package frc.robot.subsystems;
 
 import edu.wpi.first.math.controller.PIDController;
@@ -55,7 +57,7 @@ Subsystem for controlling the turret
  */
 
 public class Turret extends SubsystemBase {
-    private final SwerveDrive m_swerveDrive;
+    private final SwerveSubsystem m_swerveDrive;
 
     // setup motor and encoder variables
     SparkMax turretMotor = new SparkMax(Constants.turretMotor, MotorType.kBrushless);
@@ -83,7 +85,7 @@ public class Turret extends SubsystemBase {
     private boolean initialHome;
     private boolean turretHomeSensorLatch = false;
 
-    public Turret(SwerveDrive swerveDrive) {
+    public Turret(SwerveSubsystem swerveDrive) {
         this.m_swerveDrive = swerveDrive;
 
         SparkMaxConfig config = new SparkMaxConfig();
@@ -91,7 +93,9 @@ public class Turret extends SubsystemBase {
         // Basic motor settings
         config.inverted(true);            // same as motor.setInverted(true)
         config.idleMode(IdleMode.kBrake); // brake mode
-        config.smartCurrentLimit(12);     // current limiting
+        config.smartCurrentLimit(80);     // current limiting (80 bc vortexes)
+
+
 
         // Now configure closed‑loop at slot 0
         ClosedLoopConfig cl = config.closedLoop;
@@ -154,7 +158,7 @@ public class Turret extends SubsystemBase {
     }
 
     public double getRobotRelativeAngle() {
-        return getTurretAngle() - m_swerveDrive.getHeadingDegrees();
+        return getTurretAngle() - m_swerveDrive.getHeading().getDegrees();
     }
 
     public double getMaxAngle() {
@@ -167,7 +171,7 @@ public class Turret extends SubsystemBase {
 
     public boolean getTurretHome() {
 //        return !turretHomeSensor.get(); cannot understand what the turret home sensor is refering to.
-        return true;
+        return getTurretAngle() == 0;
     }
 
     public boolean getInitialHome() { //Checks if the bot is in its starting position??
@@ -191,7 +195,7 @@ public class Turret extends SubsystemBase {
     }
 
     public void setRobotCentricSetpoint(double setpoint) {
-        setpoint -= m_swerveDrive.getHeadingDegrees() + m_swerveDrive.getHeadingOffset();
+        setpoint -= m_swerveDrive.getHeading().getDegrees(); // + m_swerveDrive.getHeadingOffset(); //heading offset appears to have been a constant. Maybe their heading was always off by 180 degrees?
 
         if (setpoint > getMaxAngle())
             setpoint -= 360;
@@ -203,7 +207,8 @@ public class Turret extends SubsystemBase {
 
     public void setClosedLoopPosition() {
         double angle = Math.max(Math.min(getSetpoint(), maxAngle),  minAngle);
-        pidController.setReference(degreesToEncoderUnits(angle), ControlType.kSmartMotion);
+
+        pidController.setSetpoint(degreesToEncoderUnits(angle), ControlType.kMAXMotionPositionControl);  //formerly ControlType.kSmartMotion
     }
 
     public int degreesToEncoderUnits(double degrees) {
@@ -287,14 +292,16 @@ public class Turret extends SubsystemBase {
     public void simulationPeriodic() {
     }
 
-    public double getIdealTargetDistance() {
-        return Math.sqrt(Math.pow(SimConstants.blueGoalPose.getY() - getTurretSimPose().getY(), 2) + Math.pow(SimConstants.blueGoalPose.getX() - getTurretSimPose().getX(), 2));
-    }
+    //Simulation stuff. will have to get running eventually
+    
+    // public double getIdealTargetDistance() {
+    //     return Math.sqrt(Math.pow(SimConstants.blueGoalPose.getY() - getTurretSimPose().getY(), 2) + Math.pow(SimConstants.blueGoalPose.getX() - getTurretSimPose().getX(), 2));
+    // }
 
-    public double getIdealTurretAngle() {
+    // public double getIdealTurretAngle() {
 
-        double targetRadians = Math.atan2(SimConstants.blueGoalPose.getY() - getTurretSimPose().getY(), SimConstants.blueGoalPose.getX() - getTurretSimPose().getX());
+    //     double targetRadians = Math.atan2(SimConstants.blueGoalPose.getY() - getTurretSimPose().getY(), SimConstants.blueGoalPose.getX() - getTurretSimPose().getX());
 
-        return Math.toDegrees(targetRadians);
-    }
+    //     return Math.toDegrees(targetRadians);
+    // }
 }
