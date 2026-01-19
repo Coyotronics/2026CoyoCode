@@ -17,6 +17,7 @@ public final class Constants {
     public static final int kDriverControllerPort = 0;
     public static final double TURN_CONSTANT = 0;
     public static final double DEADBAND = 0;
+    
   }
 
   //turret constants
@@ -29,6 +30,7 @@ public final class Constants {
   //max speed og bot
   public static final double MAX_SPEED = 0;
   public static final double LOOP_TIME = 0;
-public static final double ROBOT_MASS = 0;
-public static final Object CHASSIS = null;
+  public static final double ROBOT_MASS = 0;
+  public static final Object CHASSIS = null;
+
 }
