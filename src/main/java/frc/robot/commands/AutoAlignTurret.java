@@ -1,8 +1,8 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Subsystems.Turret.TurretVision;
-import frc.robot.Subsystems.Turret.*;
+import frc.robot.commands.TurretVision;
+import frc.robot.subsystems.Turret;
 import edu.wpi.first.math.controller.PIDController;
 
 public class AutoAlignTurret extends Command {
@@ -25,10 +25,10 @@ public class AutoAlignTurret extends Command {
     @Override
     public void execute() {
         if (vision.hasTarget()) {
-            double correction = pid.calculate(vision.getTargetX(), 0.0);
+            double correction = pid.calculate(vision.getTargetX(), 0.0); // Not sure if PIDs are necessary here
 
-            double currentAngle = turret.getCurrentAngle();
-            double desiredAngle = currentAngle + vision.getTargetX();
+            double currentAngle = turret.getTurretAbsoluteAngle();
+            double desiredAngle = currentAngle + correction;
 
             //double safeTarget = getSafeTarget(currentAngle, desiredAngle);
 
@@ -39,7 +39,7 @@ public class AutoAlignTurret extends Command {
         } 
         else 
         {
-            turret.setAbsoluteSetpoint(turret.getCurrentAngle());
+            turret.setAbsoluteSetpoint(turret.getTurretAbsoluteAngle());
             turret.setClosedLoopPosition();
         }
     }
@@ -48,7 +48,7 @@ public class AutoAlignTurret extends Command {
     public double getSafeTarget(double currentAngle, double desiredAngle) 
     {
         double delta = desiredAngle - currentAngle;
-        double safeTarget;
+        double safeTarget = desiredAngle;
         
         if(desiredAngle > 180)
             safeTarget = (desiredAngle % 180) - 180;
