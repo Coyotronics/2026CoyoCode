@@ -75,10 +75,6 @@ public class TurretVision extends SubsystemBase {
         hasTarget = limelightTable.getEntry("tv").getDouble(0.0) == 1.0;
         tagID = limelightTable.getEntry("tid").getDouble(-1.0);
 
-        if(Math.abs(swerveSubsystem.getRobotVelocity().omegaRadiansPerSecond) > MAX_ANGULAR_VELOCITY)
-        {
-            hasTarget = false;
-        }
 
         // Will have to change this to be based off of driverStation and not random boolean
         if(isRed)

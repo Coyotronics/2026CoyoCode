@@ -34,13 +34,14 @@ public class AutoAlignTurret extends Command {
 
             //turret.setAbsoluteSetpoint(safeTarget);
             turret.setAbsoluteSetpoint(desiredAngle);
-            turret.setClosedLoopPosition();
+
+            //turret.setClosedLoopPosition();
             
         } 
         else 
         {
             turret.setAbsoluteSetpoint(turret.getTurretAbsoluteAngle());
-            turret.setClosedLoopPosition();
+            //turret.setClosedLoopPosition();
         }
     }
 
