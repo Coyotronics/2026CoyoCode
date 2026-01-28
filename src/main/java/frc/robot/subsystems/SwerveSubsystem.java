@@ -6,42 +6,44 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Meter;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
+
+import org.json.simple.parser.ParseException;
+
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.commands.PathPlannerAuto;
-import com.pathplanner.lib.commands.PathfindingCommand;
-import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
-import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import frc.robot.Constants;
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
-import org.json.simple.parser.ParseException;
-import org.photonvision.targeting.PhotonPipelineResult;
+import frc.robot.LimelightHelpers;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.SwerveDriveTest;
@@ -59,6 +61,7 @@ public class SwerveSubsystem extends SubsystemBase
    * Swerve drive object.
    */
   private final SwerveDrive swerveDrive;
+  private final NetworkTable limelightTable = NetworkTableInstance.getDefault().getTable("limelight");
 
 
   /**
@@ -69,12 +72,14 @@ public class SwerveSubsystem extends SubsystemBase
   public SwerveSubsystem(File directory)
   {
     boolean blueAlliance = false;
+
     Pose2d startingPose = blueAlliance ? new Pose2d(new Translation2d(Meter.of(1),
                                                                       Meter.of(4)),
                                                     Rotation2d.fromDegrees(0))
                                        : new Pose2d(new Translation2d(Meter.of(16),
                                                                       Meter.of(4)),
                                                     Rotation2d.fromDegrees(180));
+
     // Configure the Telemetry before creating the SwerveDrive to avoid unnecessary objects being created.
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
     try
@@ -119,9 +124,82 @@ public class SwerveSubsystem extends SubsystemBase
   @Override
   public void periodic()
   {
-   
+    updateLimelightsPose();
+    swerveDrive.updateOdometry();
   }
+    
 
+  // private void updateLimelightPose() 
+  // {
+  //   LimelightHelpers.SetRobotOrientation("limelight", swerveDrive.getPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+  //   LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+
+  //   boolean doRejectUpdate = false;
+   
+  //   // if our angular velocity is greater than 360 degrees per second, ignore vision updates
+  //   if(Math.abs(getKinematics().toChassisSpeeds().omegaRadiansPerSecond) > 2*Math.PI)
+  //   {
+  //     doRejectUpdate = true;
+  //   }
+  //   if(mt2.tagCount == 0)
+  //   {
+  //     doRejectUpdate = true;
+  //   }
+  //   if(!doRejectUpdate)
+  //   {
+  //     swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
+  //     swerveDrive.addVisionMeasurement(
+  //         mt2.pose,
+  //         mt2.timestampSeconds);
+  //   }
+  // }
+
+  private void updateLimelightsPose() {
+    // Current robot yaw (degrees)
+    double robotYaw = swerveDrive.getPose().getRotation().getDegrees();
+
+    // Define Limelight offsets relative to robot center
+    Transform2d frontLLOffset = new Transform2d(
+        new Translation2d(0.25, 0.1),        // Front LL: 0.25 m forward, 0.1 m right
+        Rotation2d.fromDegrees(0)            // rotation offset
+    );
+
+    Transform2d rearLLOffset = new Transform2d(
+        new Translation2d(-0.2, -0.05),      // Rear LL: 0.2 m back, 0.05 m left
+        Rotation2d.fromDegrees(0)            // rotation offset
+    );
+
+    // Feed current yaw to both Limelights so MegaTag2 can use it
+    LimelightHelpers.SetRobotOrientation("limelight_front", robotYaw, 0, 0, 0, 0, 0);
+    LimelightHelpers.SetRobotOrientation("limelight_rear",  robotYaw, 0, 0, 0, 0, 0);
+
+    // Get pose estimates from both Limelights
+    LimelightHelpers.PoseEstimate frontPose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight_front");
+    LimelightHelpers.PoseEstimate rearPose  = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight_rear");
+
+    // Reject update if robot spinning too fast
+    boolean rejectUpdate = Math.abs(getKinematics().toChassisSpeeds().omegaRadiansPerSecond) > 2 * Math.PI;
+
+    // Function to process each Limelight pose
+    Consumer<LimelightHelpers.PoseEstimate> processLL = (llPose) -> {
+        if (!rejectUpdate && llPose.tagCount > 0) {
+            // Determine which offset to use
+            Transform2d offset = llPose == frontPose ? frontLLOffset : rearLLOffset;
+
+            // Transform LL pose to robot center
+            Pose2d correctedPose = llPose.pose.transformBy(offset.inverse());
+
+            // Add to swerveDrive estimator
+            swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(0.7, 0.7, 9999999));
+            swerveDrive.addVisionMeasurement(correctedPose, llPose.timestampSeconds);
+        }
+    };
+
+    // Apply to both Limelights
+    processLL.accept(frontPose);
+    processLL.accept(rearPose);
+}
+    
   @Override
   public void simulationPeriodic()
   {
@@ -615,4 +693,7 @@ public class SwerveSubsystem extends SubsystemBase
   {
     return swerveDrive;
   }
+
+
+  
 }
