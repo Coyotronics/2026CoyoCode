@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Translation3d;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -27,10 +30,17 @@ public final class Constants {
   public static final double TurretkI = 0;
   public static final double TurretkD = 0;
 
+  //Turret limelight offset
+  public static Pose3d cameraOffsetFromRobotCenter;
+  public static Translation3d turretPivotCenterFromCamera;
+
   //max speed og bot
   public static final double MAX_SPEED = 0;
   public static final double LOOP_TIME = 0;
   public static final double ROBOT_MASS = 0;
   public static final Object CHASSIS = null;
+
+
+
 
 }
