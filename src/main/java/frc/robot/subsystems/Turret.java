@@ -109,6 +109,38 @@ public class Turret extends SubsystemBase
                                           new Rotation3d(0, 0, Units.degreesToRadians(0))))
              .withAprilTagIdFilter(List.of(17, 18, 19, 20, 21, 22, 6, 7, 8, 9, 10, 11))
              .save();
+
+    // Try to initialize LimelightPoseEstimator with a compatible EstimationMode.
+    // We don't hard-fail if the constructor/signature differs in the vendordep —
+    // use reflection and fall back to a dashboard flag so the robot keeps running.
+    try
+    {
+      Class<?> estimatorClass = Class.forName("limelight.networktables.LimelightPoseEstimator");
+      Class<?> modeClass = Class.forName("limelight.networktables.LimelightPoseEstimator$EstimationMode");
+      String[] candidates = {"FUSION", "BEST", "TAG_REPROJECTION", "TAG", "DEFAULT"};
+      boolean initialized = false;
+      for (String name : candidates)
+      {
+        try
+        {
+          Object mode = java.lang.Enum.valueOf((Class) modeClass, name);
+          java.lang.reflect.Constructor<?> ctor = estimatorClass.getConstructor(limelight.getClass(), modeClass);
+          limelightPoseEstimator = (LimelightPoseEstimator) ctor.newInstance(limelight, mode);
+          SmartDashboard.putString("LimelightEstimator", "initialized:" + name);
+          initialized = true;
+          break;
+        } catch (Exception ignored)
+        {
+        }
+      }
+      if (!initialized)
+      {
+        SmartDashboard.putString("LimelightEstimator", "no compatible EstimationMode/constructor");
+      }
+    } catch (ClassNotFoundException e)
+    {
+      SmartDashboard.putString("LimelightEstimator", "class-not-found");
+    }
   }
 
   public Turret(SwerveSubsystem swerve)
@@ -132,37 +164,63 @@ public class Turret extends SubsystemBase
                                                                            DegreesPerSecond.of(0))))
               .withCameraOffset(Constants.cameraOffsetFromRobotCenter.rotateAround(Constants.turretPivotCenterFromCamera, new Rotation3d(0, Degrees.of(65).in(Radians), turret.getAngle().in(Radians))))
              .save(); //camera pose is the camera pose from the center of robot
-    Optional<PoseEstimate>     poseEstimates = limelightPoseEstimator.getPoseEstimate();
-    Optional<LimelightResults> results       = limelight.getLatestResults();
-    if (results.isPresent()/* && poseEstimates.isPresent()*/)
+    // Defensive: limelightPoseEstimator may be null (not initialized) and
+    // pose estimates may be empty. Guard against both to avoid runtime
+    // exceptions while keeping behavior when data is available.
+    Optional<PoseEstimate> poseEstimates = Optional.empty();
+    Optional<LimelightResults> results = limelight.getLatestResults();
+
+    if (limelightPoseEstimator != null)
     {
-        LimelightResults result       = results.get();
-        PoseEstimate     poseEstimate = poseEstimates.get();
-        SmartDashboard.putNumber("Avg Tag Ambiguity", poseEstimate.getAvgTagAmbiguity());
-        SmartDashboard.putNumber("Min Tag Ambiguity", poseEstimate.getMinTagAmbiguity());
-        SmartDashboard.putNumber("Max Tag Ambiguity", poseEstimate.getMaxTagAmbiguity());
-        SmartDashboard.putNumber("Avg Distance", poseEstimate.avgTagDist);
-        SmartDashboard.putNumber("Avg Tag Area", poseEstimate.avgTagArea);
-        SmartDashboard.putNumber("Limelight Pose/x", poseEstimate.pose.getX());
-        SmartDashboard.putNumber("Limelight Pose/y", poseEstimate.pose.getY());
-        SmartDashboard.putNumber("Limelight Pose/degrees", poseEstimate.pose.toPose2d().getRotation().getDegrees());
+      try
+      {
+        poseEstimates = limelightPoseEstimator.getPoseEstimate();
+      } catch (Exception e)
+      {
+        // If the estimator throws, record it and proceed with raw results only.
+        SmartDashboard.putString("LimelightEstimator/error", e.getMessage());
+      }
+    } else
+    {
+      SmartDashboard.putString("LimelightEstimator", "uninitialized");
+    }
+
+    SmartDashboard.putNumber("Turret/outOfAreaReading", outofAreaReading);
+
+    if (results.isPresent())
+    {
+        LimelightResults result = results.get();
+
+        // Publish pose estimate telemetry only if present
+        if (poseEstimates.isPresent())
+        {
+          PoseEstimate poseEstimate = poseEstimates.get();
+          SmartDashboard.putNumber("Avg Tag Ambiguity", poseEstimate.getAvgTagAmbiguity());
+          SmartDashboard.putNumber("Min Tag Ambiguity", poseEstimate.getMinTagAmbiguity());
+          SmartDashboard.putNumber("Max Tag Ambiguity", poseEstimate.getMaxTagAmbiguity());
+          SmartDashboard.putNumber("Avg Distance", poseEstimate.avgTagDist);
+          SmartDashboard.putNumber("Avg Tag Area", poseEstimate.avgTagArea);
+          SmartDashboard.putNumber("Limelight Pose/x", poseEstimate.pose.getX());
+          SmartDashboard.putNumber("Limelight Pose/y", poseEstimate.pose.getY());
+          SmartDashboard.putNumber("Limelight Pose/degrees", poseEstimate.pose.toPose2d().getRotation().getDegrees());
+        }
+
         if (result.valid)
         {
-          // Pose2d estimatorPose = poseEstimate.pose.toPose2d();
-          Pose2d usefulPose     = result.getBotPose2d(Alliance.Blue);
+          Pose2d usefulPose = result.getBotPose2d(Alliance.Blue);
           double distanceToPose = usefulPose.getTranslation().getDistance(swerve.getSwerveDrive().getPose().getTranslation());
-          if (distanceToPose < 0.5 || (outofAreaReading > 10) || (outofAreaReading > 10 && !initialReading))
+
+          // Accept the vision update if it's close enough or we've had many out-of-area readings.
+          boolean accept = distanceToPose < 0.5 || outofAreaReading > 10;
+          if (accept)
           {
             if (!initialReading)
             {
               initialReading = true;
             }
             outofAreaReading = 0;
-            
-            // System.out.println(usefulPose.toString());
+
             swerve.getSwerveDrive().setVisionMeasurementStdDevs(VecBuilder.fill(0.05, 0.05, 0.022));
-            // System.out.println(result.timestamp_LIMELIGHT_publish);
-            // System.out.println(result.timestamp_RIOFPGA_capture);
             swerve.getSwerveDrive().addVisionMeasurement(usefulPose, result.timestamp_RIOFPGA_capture);
           } else
           {
@@ -178,21 +236,51 @@ public class Turret extends SubsystemBase
     turret.simIterate();
   }
 
+  /**
+   * Create a command to run the turret in open-loop (percent output) mode.
+   *
+   * @param dutycycle duty cycle in the range [-1.0, 1.0] (unitless percent output)
+   * @return a {@link Command} that, when scheduled, applies the given duty cycle to the turret motor
+   */
   public Command setPower(double dutycycle)
   {
     return turret.set(dutycycle);
   }
 
+  /**
+   * Create a system-identification command for the turret.
+   *
+   * This returns a command that will run the turret with the specified
+   * voltage profile for a duration suitable for SysID. The units used are
+   * SI/yardstick wrappers (Volts and Seconds) from your utility classes.
+   *
+   * @return a {@link Command} which performs a SysID motion on the turret
+   */
   public Command sysId()
   {
     return turret.sysId(Volts.of(3), Volts.of(3).per(Second), Second.of(30));
   }
 
+  /**
+   * Create a closed-loop command to move the turret to a target angle.
+   *
+   * The provided angle parameter is expected in degrees.
+   * Internally this wraps the value with the appropriate Angle type before
+   * passing it to the turret controller.
+   *
+   * @param angle target angle in degrees
+   * @return a {@link Command} that moves the turret to {@code angle} degrees
+   */
   public Command setAngle(double angle)
   {
     return turret.setAngle(Angle.ofBaseUnits(angle, edu.wpi.first.units.Units.Degrees).mutableCopy());
   }
 
+  /**
+   * Return the current turret angle.
+   *
+   * @return turret angle in degrees (magnitude)
+   */
   public double getAngle()
   {
     return turret.getAngle().magnitude();
