@@ -2,7 +2,11 @@
     "fileName": "yams.json",
     "name": "Yet Another Mechanism System",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     "version": "2026.1.17",
+=======
+    "version": "2026.2.3",
+>>>>>>> Stashed changes
 =======
     "version": "2026.2.3",
 >>>>>>> Stashed changes
@@ -17,7 +21,11 @@
             "groupId": "yams",
             "artifactId": "YAMS-java",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "version": "2026.1.17"
+=======
+            "version": "2026.2.3"
+>>>>>>> Stashed changes
 =======
             "version": "2026.2.3"
 >>>>>>> Stashed changes
