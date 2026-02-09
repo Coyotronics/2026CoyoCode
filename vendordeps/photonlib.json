@@ -43,7 +43,7 @@
         {
             "groupId": "org.photonvision",
             "artifactId": "photontargeting-cpp",
-            "version": "v2026.1.1",
+            "version": "v2026.2.1",
             "libName": "photontargeting",
             "headerClassifier": "headers",
             "sharedLibrary": true,
@@ -60,12 +60,12 @@
         {
             "groupId": "org.photonvision",
             "artifactId": "photonlib-java",
-            "version": "v2026.1.1"
+            "version": "v2026.2.1"
         },
         {
             "groupId": "org.photonvision",
             "artifactId": "photontargeting-java",
-            "version": "v2026.1.1"
+            "version": "v2026.2.1"
         }
     ]
 }

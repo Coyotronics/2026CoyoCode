@@ -1,0 +1,26 @@
+{
+  "location": {
+    "front": -13.25,
+    "left": -13.25
+  },
+  "absoluteEncoderOffset": 0,
+  "drive": {
+    "type": "sparkmax_vortex",
+    "id": 43,
+    "canbus": "rio",
+    "conversionFactor": 0.0473
+  },
+  "angle": {
+    "type": "sparkmax_neo550",
+    "id": 13,
+    "canbus": "rio",
+    "conversionFactor": 18.15
+  },
+  "encoder": {
+    "type": "throughbore",
+    "id": 13,
+    "canbus": "rio"
+  },
+  "inverted": { "drive": false, "angle": false },
+  "absoluteEncoderInverted": false
+}

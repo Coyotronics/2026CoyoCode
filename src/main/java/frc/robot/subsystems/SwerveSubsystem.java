@@ -178,11 +178,11 @@ public class SwerveSubsystem extends SubsystemBase
     LimelightHelpers.PoseEstimate rearPose  = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight_rear");
 
     // Reject update if robot spinning too fast
-    boolean rejectUpdate = Math.abs(getKinematics().toChassisSpeeds().omegaRadiansPerSecond) > 2 * Math.PI;
+    boolean rejectUpdate = Math.abs(swerveDrive.getRobotVelocity().omegaRadiansPerSecond) > 2 * Math.PI;
 
     // Function to process each Limelight pose
     Consumer<LimelightHelpers.PoseEstimate> processLL = (llPose) -> {
-        if (!rejectUpdate && llPose.tagCount > 0) {
+        if (llPose != null && !rejectUpdate && llPose.tagCount > 0) {
             // Determine which offset to use
             Transform2d offset = llPose == frontPose ? frontLLOffset : rearLLOffset;
 
