@@ -48,23 +48,30 @@ import yams.mechanisms.positional.Pivot;
 import yams.motorcontrollers.local.SparkWrapper;
 
 public class Intake extends SubsystemBase {
-    private double angularSpeedMagnitude = 10.0;
-    private double rollerDiameter = 0.03;
-    private double rollerMass = 0.25;
+    /* NOTE: ADD GEARBOX LATER BUT ALSO WORK ON IT WHEN MECH GOT THAT INTAKE */
+    /* NOTE: ITS ACTUALLY 2 RODS */
 
-    private SparkMax bottomLeftMotor = new SparkMax(5, MotorType.kBrushless);
-    private SparkMax bottomRightMotor = new SparkMax(6, MotorType.kBrushless);
-    private SparkMax topMotor = new SparkMax(7, MotorType.kBrushless);
+    /*
+     * LATER MAKE SURE TO GET ROLLER MASS, DIAMETER/RADIUS, AND OTHER STUFF
+     */
+
+    private SparkMax firstMotorRaw = new SparkMax(5, MotorType.kBrushless);
+    private SparkMax secondMotorRaw = new SparkMax(6, MotorType.kBrushless);
 
     private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
             .withClosedLoopController(0.00016541, 0, 0, RPM.of(5000), RotationsPerSecondPerSecond.of(2500))
             .withControlMode(ControlMode.CLOSED_LOOP);
 
+    private final SmartMotorController firstMotor = new SparkWrapper(firstMotorRaw, DCMotor.getNeoVortex(1), motorConfig);
+    private final SmartMotorController secondMotor = new SparkWrapper(secondMotorRaw, DCMotor.getNeoVortex(1), motorConfig);
+
     public Intake() {
 
     }
 
-    public void setAngularSpeedMagnitude(double speed) { angularSpeedMagnitude = speed; }
+    public void setFirstMotorSpeed(double speed) {
+        firstMotor.setPosition(speed); // WHYYYYY
+     }
 
 
 }

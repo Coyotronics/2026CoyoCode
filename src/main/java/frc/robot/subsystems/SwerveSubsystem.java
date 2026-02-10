@@ -37,6 +37,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -54,6 +55,9 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 public class SwerveSubsystem extends SubsystemBase
 {
 
@@ -63,6 +67,7 @@ public class SwerveSubsystem extends SubsystemBase
   private final SwerveDrive swerveDrive;
   private final NetworkTable limelightTable = NetworkTableInstance.getDefault().getTable("limelight");
 
+  private final Field2d field = new Field2d();
 
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
@@ -91,6 +96,7 @@ public class SwerveSubsystem extends SubsystemBase
     {
       throw new RuntimeException(e);
     }
+
     swerveDrive.setHeadingCorrection(false); // Heading correction should only be used while controlling the robot via angle.
     swerveDrive.setCosineCompensator(false);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
     swerveDrive.setAngularVelocityCompensation(true,
@@ -98,7 +104,8 @@ public class SwerveSubsystem extends SubsystemBase
                                                0.1); //Correct for skew that gets worse as angular velocity increases. Start with a coefficient of 0.1.
     swerveDrive.setModuleEncoderAutoSynchronize(false,
                                                 1); // Enable if you want to resynchronize your absolute encoders and motor encoders periodically when they are not moving.
-    
+
+    SmartDashboard.putData("Field", field);
   }
 
   /**
@@ -126,6 +133,7 @@ public class SwerveSubsystem extends SubsystemBase
   {
     updateLimelightsPose();
     swerveDrive.updateOdometry();
+    field.setRobotPose(getPose());
   }
     
 
@@ -176,13 +184,18 @@ public class SwerveSubsystem extends SubsystemBase
     // Get pose estimates from both Limelights
     LimelightHelpers.PoseEstimate frontPose = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight_front");
     LimelightHelpers.PoseEstimate rearPose  = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight_rear");
-
+    
     // Reject update if robot spinning too fast
-    boolean rejectUpdate = Math.abs(getKinematics().toChassisSpeeds().omegaRadiansPerSecond) > 2 * Math.PI;
+    /* NOTE: better to use the swerve drive instead, easier :) */
+    boolean rejectUpdate = Math.abs(swerveDrive.getRobotVelocity().omegaRadiansPerSecond) > 2 * Math.PI;
 
     // Function to process each Limelight pose
     Consumer<LimelightHelpers.PoseEstimate> processLL = (llPose) -> {
-        if (!rejectUpdate && llPose.tagCount > 0) {
+      /* NOTE: limelight pose estimate, and that crap don't exist for simulation
+       */
+      if (llPose == null) return;
+      
+      if (!rejectUpdate && llPose.tagCount > 0) {
             // Determine which offset to use
             Transform2d offset = llPose == frontPose ? frontLLOffset : rearLLOffset;
 
